@@ -17,4 +17,12 @@ public interface flights {
             @Query("departureDate") String deptDate
     );
 
+    @GET("flights")
+    Call<List<flightsModel>> getFlightsBack(
+            @Query("origin") String origin,
+            @Query("arrivalDate") String arrivalDate,
+            @Query("destination") String destination
+    );
+
+
 }

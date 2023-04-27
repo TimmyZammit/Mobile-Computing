@@ -19,7 +19,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class flightsRestRepository {
     public static flightsRestRepository instance=null;
     private flights api;
-
     private flightsRestRepository(){
         Retrofit retrofit = new Retrofit.Builder().baseUrl(flights.BASE_URL)
                             .addConverterFactory(GsonConverterFactory.create())
@@ -33,11 +32,18 @@ public class flightsRestRepository {
         }
         return instance;
     }
-
-    public LiveData<List<flightsModel>> fetchFlights (){
+    public LiveData<List<flightsModel>> fetchFlights (int flightDirection){
         final MutableLiveData<List<flightsModel>> flights = new MutableLiveData<>();
+        Call<List<flightsModel>> flightsCall = null;
 
-        api.getFlights(MainActivity.deptCountry,MainActivity.deptDate).enqueue(new Callback<List<flightsModel>>() {
+        if(flightDirection==0){
+            flightsCall = api.getFlights(MainActivity.deptCountry,MainActivity.deptDate);
+
+        }
+        else if(flightDirection==1){
+            flightsCall = api.getFlightsBack(MainActivity.arrivalCountry,MainActivity.arrivalDate,MainActivity.deptCountry);
+        }
+        flightsCall.enqueue(new Callback<List<flightsModel>>() {
             @Override
             public void onResponse(@NonNull Call<List<flightsModel>> call, @NonNull Response<List<flightsModel>> response) {
 
@@ -55,6 +61,7 @@ public class flightsRestRepository {
                 flights.setValue(null);
             }
         });
+
         return flights;
     }
 }

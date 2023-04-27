@@ -1,6 +1,9 @@
 package API;
 
 import com.google.gson.annotations.SerializedName;
+
+import java.util.Date;
+
 public class flightsModel {
 
         @SerializedName("origin")
@@ -67,9 +70,9 @@ public class flightsModel {
         }
 
         @SerializedName("price")
-        private int price;
+        private double price;
 
-        public int getPrice(){
+        public double getPrice(){
             return price;
         }
 

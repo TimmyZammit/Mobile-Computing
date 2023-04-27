@@ -6,16 +6,40 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import API.flightsModel;
 import API.flightsRestRepository;
 
+import API.hotelsModel;
+import API.hotelsRestRepository;
+
 public class MainActivity extends AppCompatActivity {
 
     public static String deptCountry;
     public static String deptDate;
+    public static Date thereArrivalDate;
+    public static String arrivalDate;
+    public static Date thereDeptDate;
+    public static String arrivalCountry;
+    /*  At Index:
+        0: store flight there
+        1: store hotel
+        2: store flight back
+    */
+    public static Object[][] trips = new Object[10][3];
+
+    private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,10 +59,10 @@ public class MainActivity extends AppCompatActivity {
                 deptDate = editText_editDeptDate.getText().toString();
 
                 EditText editText_editArrivalDate = findViewById(R.id.editArrivalDate);
-                String arrivalDate = editText_editArrivalDate.getText().toString();
+                arrivalDate = editText_editArrivalDate.getText().toString();
 
-                loadFlights();
-
+                //load and sort flights
+                loadFlightsThere();
 
             }
 
@@ -46,22 +70,140 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void loadFlights(){
-        flightsRestRepository.getInstance().fetchFlights().observe(this,this::populateFlightsContainer);
+    /*   fetch Flights is able to get flights from origin to destination and vice versa.
+    flightDirection = 0 is from origin to destination
+    flightDirection= 1 is the reverse
+    */
+    private void loadFlightsThere(){
+        LiveData<List<flightsModel>> flightLiveData = flightsRestRepository.getInstance().fetchFlights(0);
+        flightLiveData.observe(this, new Observer<List<flightsModel>>() {
+            @Override
+            public void onChanged(List<flightsModel> flightList) {
+                populateFlightsThereContainer(flightList);
+            }
+        });
     }
 
-    private void populateFlightsContainer(List<flightsModel> flightsFound){
-
-        if(flightsFound!=null){
-            for(flightsModel flights:flightsFound){
-
+    private void loadFlightsBack(int tripsArrayIndex){
+        LiveData<List<flightsModel>> flightLiveData = flightsRestRepository.getInstance().fetchFlights(1);
+        flightLiveData.observe(this, new Observer<List<flightsModel>>() {
+            @Override
+            public void onChanged(List<flightsModel> flightListBack) {
+                populateFlightsBackContainer(flightListBack,tripsArrayIndex);
             }
+        });
+    }
+
+    private void loadHotels(int tripsArrayIndex){
+        LiveData<List<hotelsModel>> hotelLiveData = hotelsRestRepository.getInstance().fetchHotels();
+        hotelLiveData.observe(this, new Observer<List<hotelsModel>>() {
+            @Override
+            public void onChanged(List<hotelsModel> hotelList) {
+                populateHotelsContainer(hotelList,tripsArrayIndex);
+            }
+        });
+    }
+
+    private void populateFlightsThereContainer(List<flightsModel> flightsThereFound){
+
+        if(flightsThereFound!=null){
+            // Sort the flightsThere by price, in ascending order
+            Collections.sort(flightsThereFound, new Comparator<flightsModel>() {
+                @Override
+                public int compare(flightsModel flight1, flightsModel flight2) {
+                    // Parse the flight prices to double values
+                    double price1 = flight1.getPrice();
+                    double price2 = flight2.getPrice();
+                    // Compare the prices and return the result
+                    return Double.compare(price1, price2);
+                }
+            });
+
+            //reset trips array and noOfTrips
+            int tripsArrayIndex = 0;
+            int noOfTrips = 0;
+            // Loop through the sorted flights
+            if(flightsThereFound!=null) {
+                for (flightsModel flight : flightsThereFound) {
+                    if (noOfTrips < 10) {
+                        arrivalCountry = flight.getDestination();
+                        try {
+                            thereArrivalDate = dateFormat.parse(flight.getArrivalDate());
+                        } catch (ParseException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        trips[tripsArrayIndex][0] = flightsThereFound.get(noOfTrips);
+                        loadFlightsBack(tripsArrayIndex);
+                        loadHotels(tripsArrayIndex);
+                        tripsArrayIndex++;
+                        noOfTrips++;
+                    } else {
+
+                    }
+                }
+            }
+
+        }
+        else{
+
+        }
+    }
+
+    private void populateFlightsBackContainer(List<flightsModel> flightsBackFound,int tripsArrayIndex) {
+
+        if(flightsBackFound!=null) {
+            // Sort the flightsThere by price, in ascending order
+            Collections.sort(flightsBackFound, new Comparator<flightsModel>() {
+                @Override
+                public int compare(flightsModel flight1, flightsModel flight2) {
+                    // Parse the flight prices to double values
+                    double price1 = flight1.getPrice();
+                    double price2 = flight2.getPrice();
+                    // Compare the prices and return the result
+                    return Double.compare(price1, price2);
+                }
+            });
+
+            trips[tripsArrayIndex][2] = flightsBackFound.get(0);
+            try {
+                thereDeptDate = dateFormat.parse(flightsBackFound.get(0).getDepartureDate());
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+
         }
         else{
 
         }
 
     }
+
+    private void populateHotelsContainer(List<hotelsModel> hotelsModels, int tripsArrayIndex) {
+
+        if(hotelsModels!=null) {
+            // Sort the hotels by price, in ascending order
+            Collections.sort(hotelsModels, new Comparator<hotelsModel>() {
+                @Override
+                public int compare(hotelsModel hotel1, hotelsModel hotel2) {
+                    // Parse the hotel prices to double values
+                    double price1 = Double.parseDouble(hotel1.getPricePerNight());
+                    double price2 = Double.parseDouble(hotel2.getPricePerNight());
+                    // Compare the prices and return the result
+                    return Double.compare(price1, price2);
+                }
+            });
+
+            trips[tripsArrayIndex][1] = hotelsModels.get(0);
+
+
+        }
+        else{
+
+        }
+
+    }
+
 
 
 }
