@@ -219,10 +219,6 @@ public class MainActivity extends AppCompatActivity {
             });
 
             trips[tripsArrayIndex][1] = hotelsModels.get(0);
-            for(int i=0; i<1000;i++){
-                i++;
-                i--;
-            }
 
             processesFinished++;
             allProcessesFinished();
@@ -240,19 +236,39 @@ public class MainActivity extends AppCompatActivity {
             processesFinished=0;
             totalProcesses = 0;
 
-            setContentView(R.layout.activity_main);
+            orderFlights();
         }
     }
 
     private void orderFlights(){
-        for(int i=0;i< trips.length;i++){
-            if(trips[i]!=null && trips[i+1]!=null) {
-                flightsModel flight1 = (flightsModel) trips[i][0];
-                flightsModel flight2 = (flightsModel) trips[i][2];
-                hotelsModel hotel = (hotelsModel) trips[i][1];
-                double totalPrice1 = flight1.getPrice()+flight2.getPrice()+hotel.getPrice();
+        for(int j=0;j< trips.length;j++) {
+            for (int i = 0; i < trips.length-1; i++) {
+                if (trips[i] != null && trips[i + 1][0]!= null) {
+
+                    flightsModel flight1 = (flightsModel) trips[i][0];
+                    flightsModel flight2 = (flightsModel) trips[i][2];
+                    hotelsModel hotel = (hotelsModel) trips[i][1];
+                    double totalPrice1 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
+
+                    flight1 = (flightsModel) trips[i + 1][0];
+                    flight2 = (flightsModel) trips[i + 1][2];
+                    hotel = (hotelsModel) trips[i + 1][1];
+                    double totalPrice2 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
+
+                    if (totalPrice1 > totalPrice2) {
+
+                        Object[] temp = trips[i];
+                        trips[i] = trips[i + 1];
+                        trips[i + 1] = temp;
+
+                    }
+
+                }
             }
         }
+
+        setContentView(R.layout.activity_main);
+
     }
 
 
