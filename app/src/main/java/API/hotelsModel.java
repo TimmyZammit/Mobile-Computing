@@ -23,9 +23,9 @@ public class hotelsModel {
 
 
     @SerializedName("price_per_night")
-    private String price_per_night;
+    private double price_per_night;
 
-    public String getPricePerNight(){return price_per_night;}
+    public double getPrice(){return price_per_night;}
 
 
     @SerializedName("address")

@@ -40,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
 
     private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+    /*  since each asynch process is called in the populateFlightsThereContainer we first check
+        if it is finished. while doing this for every increment we add to totalProcesses. in check
+        total processes is multiplied by two since we have loadFlightsBack and loadHotels
+    */
+    private boolean loadFlightsThereFinished = false;
+    private int processesFinished = 0;
+    private int totalProcesses=0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v){
+
                 //gets text of departure country and departure and arrival dates
                 EditText editText_editDeptCountry = findViewById(R.id.editDeptCountry);
                 deptCountry = editText_editDeptCountry.getText().toString();
@@ -61,13 +70,19 @@ public class MainActivity extends AppCompatActivity {
                 EditText editText_editArrivalDate = findViewById(R.id.editArrivalDate);
                 arrivalDate = editText_editArrivalDate.getText().toString();
 
-                //load and sort flights
-                loadFlightsThere();
+                loadTripsLoadingLayout();
 
             }
 
         });
 
+    }
+
+    private void loadTripsLoadingLayout() {
+        setContentView(R.layout.trips_loading);
+
+        //load and sort flights
+        loadFlightsThere();
     }
 
     /*   fetch Flights is able to get flights from origin to destination and vice versa.
@@ -138,10 +153,16 @@ public class MainActivity extends AppCompatActivity {
                         loadHotels(tripsArrayIndex);
                         tripsArrayIndex++;
                         noOfTrips++;
+                        totalProcesses++;
                     } else {
 
                     }
                 }
+
+                loadFlightsThereFinished=true;
+                allProcessesFinished();
+
+
             }
 
         }
@@ -172,6 +193,9 @@ public class MainActivity extends AppCompatActivity {
                 throw new RuntimeException(e);
             }
 
+            processesFinished++;
+            allProcessesFinished();
+
         }
         else{
 
@@ -187,21 +211,48 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public int compare(hotelsModel hotel1, hotelsModel hotel2) {
                     // Parse the hotel prices to double values
-                    double price1 = Double.parseDouble(hotel1.getPricePerNight());
-                    double price2 = Double.parseDouble(hotel2.getPricePerNight());
+                    double price1 = hotel1.getPrice();
+                    double price2 = hotel2.getPrice();
                     // Compare the prices and return the result
                     return Double.compare(price1, price2);
                 }
             });
 
             trips[tripsArrayIndex][1] = hotelsModels.get(0);
+            for(int i=0; i<1000;i++){
+                i++;
+                i--;
+            }
 
-
+            processesFinished++;
+            allProcessesFinished();
         }
         else{
 
         }
 
+    }
+
+    private void allProcessesFinished(){
+        if(processesFinished==totalProcesses*2 && loadFlightsThereFinished) {
+
+            loadFlightsThereFinished=false;
+            processesFinished=0;
+            totalProcesses = 0;
+
+            setContentView(R.layout.activity_main);
+        }
+    }
+
+    private void orderFlights(){
+        for(int i=0;i< trips.length;i++){
+            if(trips[i]!=null && trips[i+1]!=null) {
+                flightsModel flight1 = (flightsModel) trips[i][0];
+                flightsModel flight2 = (flightsModel) trips[i][2];
+                hotelsModel hotel = (hotelsModel) trips[i][1];
+                double totalPrice1 = flight1.getPrice()+flight2.getPrice()+hotel.getPrice();
+            }
+        }
     }
 
 
