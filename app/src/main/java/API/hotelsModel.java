@@ -2,9 +2,10 @@ package API;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class hotelsModel {
+public class hotelsModel implements Serializable {
 
     @SerializedName("destination")
     private String destination;

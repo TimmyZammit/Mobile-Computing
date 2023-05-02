@@ -1,5 +1,6 @@
 package com.example.bb;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -140,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
             // Loop through the sorted flights
             if(flightsThereFound!=null) {
                 for (flightsModel flight : flightsThereFound) {
-                    if (noOfTrips < 10) {
+                    if (noOfTrips < trips.length) {
                         arrivalCountry = flight.getDestination();
                         try {
                             thereArrivalDate = dateFormat.parse(flight.getArrivalDate());
@@ -167,7 +168,6 @@ public class MainActivity extends AppCompatActivity {
 
         }
         else{
-
         }
     }
 
@@ -198,6 +198,11 @@ public class MainActivity extends AppCompatActivity {
 
         }
         else{
+            trips[tripsArrayIndex][0] = null;
+            trips[tripsArrayIndex][1] = null;
+            trips[tripsArrayIndex][2] = null;
+            processesFinished+=2;
+            allProcessesFinished();
 
         }
 
@@ -205,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void populateHotelsContainer(List<hotelsModel> hotelsModels, int tripsArrayIndex) {
 
-        if(hotelsModels!=null) {
+        if(hotelsModels!=null && !hotelsModels.isEmpty()) {
             // Sort the hotels by price, in ascending order
             Collections.sort(hotelsModels, new Comparator<hotelsModel>() {
                 @Override
@@ -225,6 +230,11 @@ public class MainActivity extends AppCompatActivity {
         }
         else{
 
+            trips[tripsArrayIndex][0] = null;
+            trips[tripsArrayIndex][1] = null;
+            trips[tripsArrayIndex][2] = null;
+            processesFinished++;
+            allProcessesFinished();
         }
 
     }
@@ -267,7 +277,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        setContentView(R.layout.activity_main);
+        Intent renderTripsIntent = new Intent(this,renderTrips.class);
+        renderTripsIntent.putExtra("trips",trips);
+
+        startActivity(renderTripsIntent);
 
     }
 

@@ -2,9 +2,10 @@ package API;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class flightsModel {
+public class flightsModel implements Serializable {
 
         @SerializedName("origin")
         private String origin;
