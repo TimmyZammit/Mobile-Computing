@@ -2,6 +2,7 @@ package com.example.bb;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,7 +18,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import API.FlightsCallback;
+import API.HotelsCallback;
 import API.flightsModel;
 import API.flightsRestRepository;
 
@@ -40,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
     public static Object[][] trips = new Object[10][3];
 
     private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+    private AtomicInteger completedRequests = new AtomicInteger(0);
+    private AtomicInteger completedHotelRequests = new AtomicInteger(0);
+
+
 
     /*  since each asynch process is called in the populateFlightsThereContainer we first check
         if it is finished. while doing this for every increment we add to totalProcesses. in check
@@ -91,38 +101,22 @@ public class MainActivity extends AppCompatActivity {
     flightDirection= 1 is the reverse
     */
     private void loadFlightsThere(){
-        LiveData<List<flightsModel>> flightLiveData = flightsRestRepository.getInstance().fetchFlights(0);
-        flightLiveData.observe(this, new Observer<List<flightsModel>>() {
+        flightsRestRepository repository = flightsRestRepository.getInstance();
+        repository.fetchFlights(0, new FlightsCallback(){
             @Override
-            public void onChanged(List<flightsModel> flightList) {
-                populateFlightsThereContainer(flightList);
+            public void onSuccess(List<flightsModel> flights) {
+                populateFlightsThereContainer(flights);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+
             }
         });
     }
-
-    private void loadFlightsBack(int tripsArrayIndex){
-        LiveData<List<flightsModel>> flightLiveData = flightsRestRepository.getInstance().fetchFlights(1);
-        flightLiveData.observe(this, new Observer<List<flightsModel>>() {
-            @Override
-            public void onChanged(List<flightsModel> flightListBack) {
-                populateFlightsBackContainer(flightListBack,tripsArrayIndex);
-            }
-        });
-    }
-
-    private void loadHotels(int tripsArrayIndex){
-        LiveData<List<hotelsModel>> hotelLiveData = hotelsRestRepository.getInstance().fetchHotels();
-        hotelLiveData.observe(this, new Observer<List<hotelsModel>>() {
-            @Override
-            public void onChanged(List<hotelsModel> hotelList) {
-                populateHotelsContainer(hotelList,tripsArrayIndex);
-            }
-        });
-    }
-
     private void populateFlightsThereContainer(List<flightsModel> flightsThereFound){
 
-        if(flightsThereFound!=null){
+        if(flightsThereFound.size()>0){
             // Sort the flightsThere by price, in ascending order
             Collections.sort(flightsThereFound, new Comparator<flightsModel>() {
                 @Override
@@ -135,50 +129,73 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            //reset trips array and noOfTrips
-            int tripsArrayIndex = 0;
-            int noOfTrips = 0;
             // Loop through the sorted flights
             if(flightsThereFound!=null) {
-                for (flightsModel flight : flightsThereFound) {
-                    if (noOfTrips < trips.length) {
-                        arrivalCountry = flight.getDestination();
-                        try {
-                            thereArrivalDate = dateFormat.parse(flight.getArrivalDate());
-                        } catch (ParseException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        trips[tripsArrayIndex][0] = flightsThereFound.get(noOfTrips);
-                        loadFlightsBack(tripsArrayIndex);
-                        loadHotels(tripsArrayIndex);
-                        tripsArrayIndex++;
-                        noOfTrips++;
-                        totalProcesses++;
-                    } else {
-
-                    }
+                for (int i=0;i<trips.length;i++){
+                        trips[i][0] = flightsThereFound.get(i);
                 }
 
-                loadFlightsThereFinished=true;
-                allProcessesFinished();
+                setFlightsBack();
 
 
             }
 
         }
         else{
+            setFlightsBack();
         }
     }
 
-    private void populateFlightsBackContainer(List<flightsModel> flightsBackFound,int tripsArrayIndex) {
+    private void setFlightsBack(){
+        for(int i=0;i<trips.length;i++){
+            flightsModel flight = (flightsModel) trips[i][0];
+            if(flight!=null) {
+                arrivalCountry = flight.getDestination();
+                arrivalDate = flight.getArrivalDate();
+                try {
+                    loadFlightsBack(i);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+    }
+
+    private void loadFlightsBack(int i) throws InterruptedException{
+        flightsRestRepository repository = flightsRestRepository.getInstance();
+        repository.fetchFlights(1, new FlightsCallback() {
+            @Override
+            public void onSuccess(List<flightsModel> flights) {
+                populateFlightsBackContainer(flights, i);
+
+                int completed = completedRequests.incrementAndGet();
+                if (completed == trips.length) {
+                    setHotels();
+                }
+            }
+
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e("loadFlightsBack", "Error: " + errorMessage);
+
+                int completed = completedRequests.incrementAndGet();
+                if (completed == trips.length) {
+                    setHotels();
+                }
+            }
+
+        });
+    }
+
+    private void populateFlightsBackContainer(List<flightsModel> flightsBackFound,int i) {
 
         if(flightsBackFound!=null) {
             // Sort the flightsThere by price, in ascending order
             Collections.sort(flightsBackFound, new Comparator<flightsModel>() {
                 @Override
                 public int compare(flightsModel flight1, flightsModel flight2) {
-                    // Parse the flight prices to double values
                     double price1 = flight1.getPrice();
                     double price2 = flight2.getPrice();
                     // Compare the prices and return the result
@@ -186,29 +203,62 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            trips[tripsArrayIndex][2] = flightsBackFound.get(0);
-            try {
-                thereDeptDate = dateFormat.parse(flightsBackFound.get(0).getDepartureDate());
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
-
-            processesFinished++;
-            allProcessesFinished();
+            trips[i][2] = flightsBackFound.get(0);
 
         }
         else{
-            trips[tripsArrayIndex][0] = null;
-            trips[tripsArrayIndex][1] = null;
-            trips[tripsArrayIndex][2] = null;
-            processesFinished+=2;
-            allProcessesFinished();
 
         }
 
     }
 
-    private void populateHotelsContainer(List<hotelsModel> hotelsModels, int tripsArrayIndex) {
+    private void setHotels(){
+        for(int i=0;i<trips.length;i++){
+            flightsModel flight1 = (flightsModel) trips[i][0];
+            flightsModel flight2 = (flightsModel) trips[i][2];
+            if(flight2!=null) {
+                arrivalCountry = flight1.getDestination();
+                try {
+                    thereArrivalDate = dateFormat.parse(flight1.getArrivalDate());
+                    thereDeptDate = dateFormat.parse(flight2.getDepartureDate());
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                }
+
+                loadHotels(i);
+            }
+        }
+
+    }
+
+    private void loadHotels(int i){
+        hotelsRestRepository repository = hotelsRestRepository.getInstance();
+        repository.fetchHotels(new HotelsCallback() {
+            @Override
+            public void onSuccess(List<hotelsModel> hotels) {
+                populateHotelsContainer(hotels, i);
+
+                int completed = completedHotelRequests.incrementAndGet();
+                if (completed == trips.length) {
+                    orderFlights();
+                }
+            }
+
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e("loadHotels", "Error: " + errorMessage);
+
+                int completed = completedHotelRequests.incrementAndGet();
+                if (completed == trips.length) {
+                    orderFlights();
+                }
+            }
+
+        });
+
+    }
+    private void populateHotelsContainer(List<hotelsModel> hotelsModels, int i) {
 
         if(hotelsModels!=null && !hotelsModels.isEmpty()) {
             // Sort the hotels by price, in ascending order
@@ -223,33 +273,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-            trips[tripsArrayIndex][1] = hotelsModels.get(0);
-
-            processesFinished++;
-            allProcessesFinished();
+            trips[i][1] = hotelsModels.get(0);
         }
         else{
-
-            trips[tripsArrayIndex][0] = null;
-            trips[tripsArrayIndex][1] = null;
-            trips[tripsArrayIndex][2] = null;
-            processesFinished++;
-            allProcessesFinished();
         }
 
     }
-
-    private void allProcessesFinished(){
-        if(processesFinished==totalProcesses*2 && loadFlightsThereFinished) {
-
-            loadFlightsThereFinished=false;
-            processesFinished=0;
-            totalProcesses = 0;
-
-            orderFlights();
-        }
-    }
-
     private void orderFlights(){
         for(int j=0;j< trips.length;j++) {
             for (int i = 0; i < trips.length-1; i++) {
@@ -258,18 +287,26 @@ public class MainActivity extends AppCompatActivity {
                     flightsModel flight1 = (flightsModel) trips[i][0];
                     flightsModel flight2 = (flightsModel) trips[i][2];
                     hotelsModel hotel = (hotelsModel) trips[i][1];
-                    double totalPrice1 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
 
-                    flight1 = (flightsModel) trips[i + 1][0];
-                    flight2 = (flightsModel) trips[i + 1][2];
-                    hotel = (hotelsModel) trips[i + 1][1];
-                    double totalPrice2 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
+                    if (flight1 != null && flight2 != null && hotel != null) {
+                        double totalPrice1 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
 
-                    if (totalPrice1 > totalPrice2) {
 
-                        Object[] temp = trips[i];
-                        trips[i] = trips[i + 1];
-                        trips[i + 1] = temp;
+                        flight1 = (flightsModel) trips[i + 1][0];
+                        flight2 = (flightsModel) trips[i + 1][2];
+                        hotel = (hotelsModel) trips[i + 1][1];
+
+                        if (flight1 != null && flight2 != null && hotel != null) {
+                            double totalPrice2 = flight1.getPrice() + flight2.getPrice() + hotel.getPrice();
+
+                            if (totalPrice1 > totalPrice2) {
+
+                                Object[] temp = trips[i];
+                                trips[i] = trips[i + 1];
+                                trips[i + 1] = temp;
+
+                            }
+                        }
 
                     }
 

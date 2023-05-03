@@ -55,19 +55,32 @@ public class renderTrips extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-
-            if(trips[position][0]!=null) {
+            if (trips[position][0] != null) {
                 flightsModel flight1 = (flightsModel) trips[position][0];
                 hotelsModel hotel = (hotelsModel) trips[position][1];
                 flightsModel flight2 = (flightsModel) trips[position][2];
 
                 String destination = flight1.getDestination();
-                double price = flight1.getPrice() + hotel.getPrice() + flight2.getPrice();
+                double price = flight1.getPrice();
+
+                // Check if hotel object is not null before calling its methods
+                if (hotel != null) {
+                    price += hotel.getPrice();
+                } else {
+                    // Handle the case where hotel data is not available
+                }
+
+                if (flight2 != null) {
+                    price += flight2.getPrice();
+                } else {
+                    // Handle the case where flight2 data is not available
+                }
 
                 holder.destination.setText(destination);
                 holder.price.setText(String.format("£%.2f", price));
             }
         }
+
 
         @Override
         public int getItemCount() {

@@ -3,8 +3,6 @@ package API;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 
 import com.example.bb.MainActivity;
 
@@ -18,7 +16,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class hotelsRestRepository {
     public static hotelsRestRepository instance=null;
-    private hotels api;
+    private static hotels api;
 
     private hotelsRestRepository(){
         Retrofit retrofit = new Retrofit.Builder().baseUrl(hotels.BASE_URL)
@@ -34,29 +32,36 @@ public class hotelsRestRepository {
         return instance;
     }
 
-    public LiveData<List<hotelsModel>> fetchHotels() {
-        final MutableLiveData<List<hotelsModel>> hotels = new MutableLiveData<>();
+    public static List<hotelsModel> fetchHotels(HotelsCallback callback) {
         Call<List<hotelsModel>> hotelsCall = api.getHotels(MainActivity.arrivalCountry, MainActivity.thereArrivalDate, MainActivity.thereDeptDate);
 
         hotelsCall.enqueue(new Callback<List<hotelsModel>>() {
             @Override
             public void onResponse(@NonNull Call<List<hotelsModel>> call, @NonNull Response<List<hotelsModel>> response) {
-                if(!response.isSuccessful()){
+                if (!response.isSuccessful()) {
+                    Log.d("fail", "Fetched hotels: " + response.toString());
+                    callback.onFailure("Unsuccessful response");
                     return;
                 }
-                hotels.setValue(response.body());
+                Log.d("fetchHotels", "Fetched hotels: " + response.toString());
+                callback.onSuccess(response.body());
             }
 
             @Override
             public void onFailure(@NonNull Call<List<hotelsModel>> call, @NonNull Throwable t) {
-                Log.i("fetchHotels", call.request().toString());
-                Log.e("fetchHotels", t.getMessage());
-                hotels.setValue(null);
+                Log.i("fail", call.request().toString());
+                Log.e("fail", t.getMessage());
+                callback.onFailure(t.getMessage());
+
+                Log.d("fail", "Fetched hotels: ");
             }
         });
-        return hotels;
+
+        return null;
     }
 
 
+
 }
+
 

@@ -3,8 +3,6 @@ package API;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 
 import com.example.bb.MainActivity;
 
@@ -32,36 +30,33 @@ public class flightsRestRepository {
         }
         return instance;
     }
-    public LiveData<List<flightsModel>> fetchFlights (int flightDirection){
-        final MutableLiveData<List<flightsModel>> flights = new MutableLiveData<>();
+    public List<flightsModel> fetchFlights(int flightDirection, FlightsCallback callback) {
         Call<List<flightsModel>> flightsCall = null;
 
-        if(flightDirection==0){
-            flightsCall = api.getFlights(MainActivity.deptCountry,MainActivity.deptDate);
-
-        }
-        else if(flightDirection==1){
-            flightsCall = api.getFlightsBack(MainActivity.arrivalCountry,MainActivity.arrivalDate,MainActivity.deptCountry);
+        if (flightDirection == 0) {
+            flightsCall = api.getFlights(MainActivity.deptCountry, MainActivity.deptDate);
+        } else if (flightDirection == 1) {
+            flightsCall = api.getFlightsBack(MainActivity.arrivalCountry, MainActivity.arrivalDate, MainActivity.deptCountry);
         }
         flightsCall.enqueue(new Callback<List<flightsModel>>() {
             @Override
             public void onResponse(@NonNull Call<List<flightsModel>> call, @NonNull Response<List<flightsModel>> response) {
-
-                if(!response.isSuccessful()){
+                if (!response.isSuccessful()) {
+                    callback.onFailure("Unsuccessful response");
                     return;
                 }
-                flights.setValue(response.body());
-
+                callback.onSuccess(response.body());
             }
 
             @Override
             public void onFailure(@NonNull Call<List<flightsModel>> call, @NonNull Throwable t) {
-                Log.i("fetchFlights",call.request().toString());
-                Log.e("fetchFlights",t.getMessage());
-                flights.setValue(null);
+                Log.i("fetchFlights", call.request().toString());
+                Log.e("fetchFlights", t.getMessage());
+                callback.onFailure(t.getMessage());
             }
         });
-
-        return flights;
+        return null;
     }
+
 }
+
