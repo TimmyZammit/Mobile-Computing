@@ -13,11 +13,12 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-
+//used to call from the API
 public class hotelsRestRepository {
     public static hotelsRestRepository instance=null;
     private static hotels api;
 
+    //uses flights interface to instantiate the api call
     private hotelsRestRepository(){
         Retrofit retrofit = new Retrofit.Builder().baseUrl(hotels.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -32,6 +33,7 @@ public class hotelsRestRepository {
         return instance;
     }
 
+    //call the appropriate method from hotel interface to query the API
     public static List<hotelsModel> fetchHotels(HotelsCallback callback) {
         Call<List<hotelsModel>> hotelsCall = api.getHotels(MainActivity.arrivalCountry, MainActivity.thereArrivalDate, MainActivity.thereDeptDate);
 

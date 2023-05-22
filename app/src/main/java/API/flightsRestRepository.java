@@ -14,9 +14,11 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+//used to call from the API
 public class flightsRestRepository {
     public static flightsRestRepository instance=null;
     private flights api;
+    //uses flights interface to instantiate the api call
     private flightsRestRepository(){
         Retrofit retrofit = new Retrofit.Builder().baseUrl(flights.BASE_URL)
                             .addConverterFactory(GsonConverterFactory.create())
@@ -30,9 +32,18 @@ public class flightsRestRepository {
         }
         return instance;
     }
+
+    //call the appropriate method from flights interface to query the API
     public List<flightsModel> fetchFlights(int flightDirection, FlightsCallback callback) {
         Call<List<flightsModel>> flightsCall = null;
 
+        /*flight direction == 0 refers to the departure flight and finds all flights that have the
+        same departure country and departure date
+
+        flight direction == 1 refers to the arrival flight and finds all flights that have the same
+        arrival country(i.e. country the holiday is in) and the same departure country
+        (i.e. home country) and the correct arrival date in the home country.
+        */
         if (flightDirection == 0) {
             flightsCall = api.getFlights(MainActivity.deptCountry, MainActivity.deptDate);
         } else if (flightDirection == 1) {

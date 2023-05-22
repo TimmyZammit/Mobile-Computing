@@ -5,13 +5,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+    <include
+        android:id="@+id/header_layout"
+        layout="@layout/header_layout"/>
 
+    <ImageView
+        android:id="@+id/top"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_gravity="center"
+        android:src="@drawable/top_image"
+        app:layout_constraintBottom_toTopOf="@id/bot"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/header_layout"
+        android:scaleType="fitXY"/>
+    <ImageView
+        android:id="@+id/bot"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_gravity="center"
+        android:src="@drawable/bottom_image"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top"
+        android:scaleType="fitXY"/>
 
     <EditText
         android:id="@+id/editDeptCountry"
 
         android:layout_width="360dp"
-        android:layout_height="50dp"
+        android:layout_height="60dp"
 
         android:layout_margin="5dp"
         android:background="@color/green_black"
@@ -34,7 +59,7 @@
         android:id="@+id/editDeptDate"
 
         android:layout_width="180dp"
-        android:layout_height="50dp"
+        android:layout_height="60dp"
 
         android:layout_marginLeft="30dp"
         android:background="@color/green_black"
@@ -51,17 +76,25 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
 
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.5"
+        app:layout_constraintTop_toBottomOf="@+id/header_layout"
 
-        />
+        app:layout_constraintVertical_bias="0.5" />
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="50dp"
+        android:src="@drawable/white_line"
+        app:layout_constraintBottom_toTopOf="@+id/findTrip"
+        app:layout_constraintEnd_toEndOf="@+id/editArrivalDate"
+        app:layout_constraintStart_toStartOf="@+id/editDeptDate"
+        app:layout_constraintTop_toBottomOf="@+id/editDeptCountry" />
 
     <EditText
 
         android:id="@+id/editArrivalDate"
 
         android:layout_width="180dp"
-        android:layout_height="50dp"
+        android:layout_height="60dp"
 
         android:layout_marginRight="30dp"
         android:background="@color/green_black"
@@ -84,8 +117,8 @@
     <Button
         android:id="@+id/findTrip"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Click Me!"
+        android:layout_height="60dp"
+        android:text="Find My Trip"
         android:textColor="@color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"

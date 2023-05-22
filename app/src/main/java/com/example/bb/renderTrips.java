@@ -1,7 +1,8 @@
 package com.example.bb;
 
+import static com.example.bb.MainActivity.trips;
 
-
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -25,14 +26,36 @@ public class renderTrips extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.trips_found);
 
-        // Get the trips array from the intent
+        final Context context = this;
+
+        Header header = new Header(findViewById(R.id.header_layout), new Header.HeaderClickListener() {
+
+            @Override
+            public void onImageLeftClick() {
+                Intent backIntent = new Intent(context,MainActivity.class);
+                startActivity(backIntent);
+            }
+
+            @Override
+            public void onImageRightClick() {
+                Intent renderFavsIntent = new Intent(context,renderFavourites.class);
+                startActivity(renderFavsIntent);
+            }
+
+
+        });
+
+        header.setImageLeft(getResources().getIdentifier("arrow","drawable",getPackageName()));
+        header.setImageRight(getResources().getIdentifier("heart","drawable",getPackageName()));
+        header.setTitle("Trips Found");
+
+
+
         Object[][] trips = (Object[][]) intent.getSerializableExtra("trips");
 
-        // Initialize the RecyclerView
         RecyclerView recyclerView = findViewById(R.id.trips_list);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Initialize the adapter with data from the trips array
         TripAdapter tripAdapter = new TripAdapter(trips);
         recyclerView.setAdapter(tripAdapter);
     }
@@ -63,7 +86,6 @@ public class renderTrips extends AppCompatActivity {
                 String destination = flight1.getDestination();
                 double price = flight1.getPrice();
 
-                // Check if hotel object is not null before calling its methods
                 if (hotel != null) {
                     price += hotel.getPrice();
                 } else {
@@ -87,7 +109,7 @@ public class renderTrips extends AppCompatActivity {
             return trips.length;
         }
 
-        public class ViewHolder extends RecyclerView.ViewHolder {
+        public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
             private TextView destination;
             private TextView price;
@@ -96,8 +118,23 @@ public class renderTrips extends AppCompatActivity {
                 super(itemView);
                 destination = itemView.findViewById(R.id.destination);
                 price = itemView.findViewById(R.id.price);
+
+                // Set the onClickListener for the card
+                itemView.setOnClickListener(this);
+            }
+            @Override
+            public void onClick(View v) {
+                // Get the data related to the clicked card
+                Object[] tripData = (Object[]) trips[getAdapterPosition()];
+
+                // Start a new activity to display the data
+                Intent intent = new Intent(v.getContext(), TripDetailsActivity.class);
+                intent.putExtra("tripData", tripData);
+                v.getContext().startActivity(intent);
             }
         }
+
     }
 }
+
 

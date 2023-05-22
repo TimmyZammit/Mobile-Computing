@@ -1,5 +1,6 @@
 package com.example.bb;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +15,7 @@ import androidx.lifecycle.Observer;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -28,6 +30,7 @@ import API.flightsRestRepository;
 
 import API.hotelsModel;
 import API.hotelsRestRepository;
+import DB.DBHelper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,23 +51,14 @@ public class MainActivity extends AppCompatActivity {
 
     private AtomicInteger completedRequests = new AtomicInteger(0);
     private AtomicInteger completedHotelRequests = new AtomicInteger(0);
-
-
-
-    /*  since each asynch process is called in the populateFlightsThereContainer we first check
-        if it is finished. while doing this for every increment we add to totalProcesses. in check
-        total processes is multiplied by two since we have loadFlightsBack and loadHotels
-    */
-    private boolean loadFlightsThereFinished = false;
-    private int processesFinished = 0;
-    private int totalProcesses=0;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        setHeader(0);
+
+        //gets all inputted values on button click and queries API
         Button button = findViewById(R.id.findTrip);
         button.setOnClickListener(new View.OnClickListener(){
 
@@ -89,6 +83,58 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void setHeader(int page){
+        //sets header according to page
+        final Context context = this;
+        Header header;
+
+        if(page==0) {
+            header = new Header(findViewById(R.id.header_layout), new Header.HeaderClickListener() {
+
+                @Override
+                public void onImageLeftClick() {
+
+                }
+
+                @Override
+                public void onImageRightClick() {
+                    Intent renderFavsIntent = new Intent(context, renderFavourites.class);
+                    startActivity(renderFavsIntent);
+                }
+
+
+            });
+        }
+        else{
+            header = new Header(findViewById(R.id.header_layout), new Header.HeaderClickListener() {
+
+                @Override
+                public void onImageLeftClick() {
+                    Intent renderFavsIntent = new Intent(context, MainActivity.class);
+                    startActivity(renderFavsIntent);
+                }
+
+                @Override
+                public void onImageRightClick() {
+                    Intent renderFavsIntent = new Intent(context, renderFavourites.class);
+                    startActivity(renderFavsIntent);
+                }
+
+
+            });
+        }
+
+        if(page==0) {
+            header.setImageLeft(getResources().getIdentifier("logo", "drawable", getPackageName()));
+        }
+        else{
+            header.setImageLeft(getResources().getIdentifier("arrow", "drawable", getPackageName()));
+        }
+        header.setImageRight(getResources().getIdentifier("heart","drawable",getPackageName()));
+        header.setTitle("Find Trip");
+    }
+
+    //loads loading page while users wait
     private void loadTripsLoadingLayout() {
         setContentView(R.layout.trips_loading);
 
@@ -121,15 +167,13 @@ public class MainActivity extends AppCompatActivity {
             Collections.sort(flightsThereFound, new Comparator<flightsModel>() {
                 @Override
                 public int compare(flightsModel flight1, flightsModel flight2) {
-                    // Parse the flight prices to double values
                     double price1 = flight1.getPrice();
                     double price2 = flight2.getPrice();
-                    // Compare the prices and return the result
                     return Double.compare(price1, price2);
                 }
             });
 
-            // Loop through the sorted flights
+            // Loop through the sorted flights and add to the trips array at index [0]
             if(flightsThereFound!=null) {
                 for (int i=0;i<trips.length;i++){
                         trips[i][0] = flightsThereFound.get(i);
@@ -142,11 +186,14 @@ public class MainActivity extends AppCompatActivity {
 
         }
         else{
-            setFlightsBack();
+            setContentView(R.layout.no_trips);
+            setHeader(1);
         }
     }
-
     private void setFlightsBack(){
+        /*loops through the trips array which has sorted flights to various destinations and calls
+        the method to find and sort the flights back
+        */
         for(int i=0;i<trips.length;i++){
             flightsModel flight = (flightsModel) trips[i][0];
             if(flight!=null) {
@@ -162,6 +209,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    //calls API to query for flights back
     private void loadFlightsBack(int i) throws InterruptedException{
         flightsRestRepository repository = flightsRestRepository.getInstance();
         repository.fetchFlights(1, new FlightsCallback() {
@@ -176,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
+            //need to create method to delete trip if flight back not found
             @Override
             public void onFailure(String errorMessage) {
                 Log.e("loadFlightsBack", "Error: " + errorMessage);
@@ -198,20 +248,21 @@ public class MainActivity extends AppCompatActivity {
                 public int compare(flightsModel flight1, flightsModel flight2) {
                     double price1 = flight1.getPrice();
                     double price2 = flight2.getPrice();
-                    // Compare the prices and return the result
                     return Double.compare(price1, price2);
                 }
             });
 
+            // add the cheapest flight (the one at index 0) to the appropriate index
             trips[i][2] = flightsBackFound.get(0);
 
         }
         else{
-
+            //need to add method to delete trip if flight back not found
         }
 
     }
 
+    //loops through trips and searches for hotels
     private void setHotels(){
         for(int i=0;i<trips.length;i++){
             flightsModel flight1 = (flightsModel) trips[i][0];
@@ -231,6 +282,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    //loads hotels from API
     private void loadHotels(int i){
         hotelsRestRepository repository = hotelsRestRepository.getInstance();
         repository.fetchHotels(new HotelsCallback() {
@@ -240,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 
                 int completed = completedHotelRequests.incrementAndGet();
                 if (completed == trips.length) {
-                    orderFlights();
+                    orderTrips();
                 }
             }
 
@@ -251,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
 
                 int completed = completedHotelRequests.incrementAndGet();
                 if (completed == trips.length) {
-                    orderFlights();
+                    orderTrips();
                 }
             }
 
@@ -265,21 +318,22 @@ public class MainActivity extends AppCompatActivity {
             Collections.sort(hotelsModels, new Comparator<hotelsModel>() {
                 @Override
                 public int compare(hotelsModel hotel1, hotelsModel hotel2) {
-                    // Parse the hotel prices to double values
                     double price1 = hotel1.getPrice();
                     double price2 = hotel2.getPrice();
-                    // Compare the prices and return the result
                     return Double.compare(price1, price2);
                 }
             });
 
+            //add cheapest hotel to appropriate trip
             trips[i][1] = hotelsModels.get(0);
         }
         else{
         }
 
     }
-    private void orderFlights(){
+
+    //iterates through trips and sorts by cheapest overall trip. (algorithm can be way faster)
+    private void orderTrips(){
         for(int j=0;j< trips.length;j++) {
             for (int i = 0; i < trips.length-1; i++) {
                 if (trips[i] != null && trips[i + 1][0]!= null) {
@@ -314,6 +368,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        //goes to renderTrips to display the trips found. for this reason the trips array is passed
         Intent renderTripsIntent = new Intent(this,renderTrips.class);
         renderTripsIntent.putExtra("trips",trips);
 
