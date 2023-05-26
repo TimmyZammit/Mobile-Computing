@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -135,11 +137,15 @@ public class DBHelper extends SQLiteOpenHelper {
         while (cursor.moveToNext()) {
             String destination = cursor.getString(cursor.getColumnIndexOrThrow(DESTINATION));
             String origin = cursor.getString(cursor.getColumnIndexOrThrow(ORIGIN));
-            double price = cursor.getDouble(cursor.getColumnIndexOrThrow(PRICE));
-            double hotelPrice = cursor.getDouble(cursor.getColumnIndexOrThrow(HOTEL_PRICE));
-            double backPrice = cursor.getDouble(cursor.getColumnIndexOrThrow(BACK_PRICE));
+//            big decimal and rounding mode are used because of inaccuracies with double
+            BigDecimal price = BigDecimal.valueOf(cursor.getDouble(cursor.getColumnIndexOrThrow(PRICE)));
+            BigDecimal hotelPrice = BigDecimal.valueOf(cursor.getDouble(cursor.getColumnIndexOrThrow(HOTEL_PRICE)));
+            BigDecimal backPrice = BigDecimal.valueOf(cursor.getDouble(cursor.getColumnIndexOrThrow(BACK_PRICE)));
 
-            double totalPrice = price + hotelPrice + backPrice;
+            BigDecimal totalPrice = price.add(hotelPrice).add(backPrice);
+
+            // Use setScale() to round the totalPrice to two decimal places
+            totalPrice = totalPrice.setScale(2, RoundingMode.HALF_UP);
 
             String[] trip = new String[] {destination, origin, String.valueOf(totalPrice)};
 

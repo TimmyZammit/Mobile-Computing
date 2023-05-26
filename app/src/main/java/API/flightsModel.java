@@ -63,7 +63,7 @@ public class flightsModel implements Serializable {
         public String getAirline(){
             return airline;
         }
-         public void setAirline(String origin) { this.airline = airline; }
+         public void setAirline(String airline) { this.airline = airline; }
 
         @SerializedName("flightNumber")
         private String flightNumber;
